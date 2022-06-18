@@ -1,9 +1,14 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const FPS = 30;
-  const FRICTION = 0.7;
-  const SHIP_SIZE = 30;
-  const SHIP_THRUST = 5;
-  const TURN_SPEED = 360;
+  const FPS = 30; // frames per second
+  const FRICTION = 0.7; // friction coefficient of space (between 0 and 1)
+  const ROIDS_JAG = 0.35; // jaggedness of asteroids (between 0 and 1)
+  const ROIDS_NUM = 3; // starting number of asteroids
+  const ROIDS_SIZE = 100; // starting size of asteroid in pixels
+  const ROIDS_SPD = 50; // max starting asteroid speed
+  const ROIDS_VERT = 10; // average number of vertices of each asteroid
+  const SHIP_SIZE = 30; // ship height in pixels
+  const SHIP_THRUST = 5; // acceleration of ship in pixels per second^2
+  const TURN_SPEED = 360; // turn speed in degrees per second
 
   let canv = document.getElementById("gameCanvas");
   let ctx = canv.getContext("2d");
@@ -21,10 +26,52 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   };
 
-  document.addEventListener("keydown", keyDown);
-  document.addEventListener("keyup", keyUp);
+  let roids = [];
+  createAsteroidBelt();
+
+  function createAsteroidBelt() {
+    roids = [];
+    let x, y;
+    for (let i = 0; i < ROIDS_NUM; i++) {
+      do {
+        x = Math.floor(Math.random() * canv.width);
+        y = Math.floor(Math.random() * canv.height);
+      } while (
+        distBetweenPoints(ship.x, ship.y, x, y) <
+        ROIDS_SIZE * 2 + ship.r
+      );
+      roids.push(newAsteroid(x, y));
+    }
+  }
+
+  function distBetweenPoints(x1, y1, x2, y2) {
+    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+  }
+
+  function newAsteroid(x, y) {
+    let roid = {
+      x: x,
+      y: y,
+      xv: ((Math.random() * ROIDS_SPD) / FPS) * (Math.random() < 0.5 ? 1 : -1),
+      yv: ((Math.random() * ROIDS_SPD) / FPS) * (Math.random() < 0.5 ? 1 : -1),
+      r: ROIDS_SIZE / 2,
+      a: Math.random() * Math.PI * 2,
+      vert: Math.floor(Math.random() * (ROIDS_VERT + 1) + ROIDS_VERT / 2),
+      offs: [],
+    };
+
+    // create the vertex offset array
+    for (let i = 0; i < roid.vert; i++) {
+      roid.offs.push(Math.random() * ROIDS_JAG * 2 + 1 - ROIDS_JAG);
+    }
+
+    return roid;
+  }
 
   setInterval(update, 1000 / FPS);
+
+  document.addEventListener("keydown", keyDown);
+  document.addEventListener("keyup", keyUp);
 
   function keyDown(ev) {
     switch (ev.key) {
@@ -113,6 +160,49 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.closePath();
     ctx.stroke();
 
+    // draw asteroids
+    ctx.strokeStyle = "slategrey";
+    ctx.lineWidht = SHIP_SIZE / 20;
+    let x, y, r, a, vert;
+    for (let i = 0; i < roids.length; i++) {
+      // get asteroids properties;
+      x = roids[i].x;
+      y = roids[i].y;
+      r = roids[i].r;
+      a = roids[i].a;
+      vert = roids[i].vert;
+      offs = roids[i].offs;
+
+      // drap a path
+      ctx.beginPath();
+      ctx.moveTo(x + r * offs[0] * Math.cos(a), y + r * offs[0] * Math.sin(a));
+      // draw the poligon
+      for (let j = 1; j < vert; j++) {
+        ctx.lineTo(
+          x + r * offs[j] * Math.cos(a + (j * Math.PI * 2) / vert),
+          y + r * offs[j] * Math.sin(a + (j * Math.PI * 2) / vert)
+        );
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      // mova the asteroid
+      roids[i].x += roids[i].xv;
+      roids[i].y += roids[i].yv;
+      // handle edge of screen
+      if (roids[i].x < 0 - roids[i].r) {
+        roids[i].x = canv.width + roids[i].r;
+      } else if (roids[i].x > canv.width + roids[i].r) {
+        roids[i].x = 0 - roids[i].r;
+      }
+
+      if (roids[i].y < 0 - roids[i].r) {
+        roids[i].y = canv.height + roids[i].r;
+      } else if (roids[i].y > canv.height + roids[i].r) {
+        roids[i].y = 0 - roids[i].r;
+      }
+    }
+
     // rotating ship
     ship.a += ship.rot;
 
@@ -120,6 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ship.x += ship.thrust.x;
     ship.y += ship.thrust.y;
 
+    // after flying outwards of canvas ship will be appear on the opposite side of canvas
     if (ship.x < 0 - ship.r) {
       ship.x = canv.width + ship.r;
     } else if (ship.x > canv.width + ship.r) {
