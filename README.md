@@ -9,4 +9,4 @@ Features:
 This project is built with HTML, CSS, and JavaScript, and uses the Canvas API to render the game graphics.
 
 Enjoy the nostalgia of the classic game, and test your reflexes and precision in this tribute to one of the pioneers of video games. 🏆  
-<a href="and-re-s.github.io/Asteroids/">Play Asteroids</a>
+<a href="http://and-re-s.github.io/Asteroids/">Play Asteroids</a>
